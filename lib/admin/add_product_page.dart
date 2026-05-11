@@ -1,9 +1,10 @@
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 import '../services/category_service.dart';
 import '../services/cloudinary_service.dart';
@@ -68,7 +69,7 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = AuthService().currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please sign in again to add products.')),
@@ -228,6 +229,16 @@ class _AddProductPageState extends State<AddProductPage> {
     _loadCategoryOptions();
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    priceController.dispose();
+    stockController.dispose();
+    newCategoryController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCategoryOptions() async {
     final fetchedCategories = await CategoryService.fetchAllCategories();
     if (!mounted) return;
@@ -374,7 +385,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 ),
               ActionChip(
                 label: Text(
-                  'Add more${FirebaseAuth.instance.currentUser?.displayName != null ? ' (${FirebaseAuth.instance.currentUser!.displayName})' : ''}',
+                  'Add more${AuthService().currentUser?.displayName != null ? ' (${AuthService().currentUser!.displayName})' : ''}',
                   style: GoogleFonts.lexend(fontSize: 12),
                 ),
                 backgroundColor: Colors.white,
@@ -390,16 +401,6 @@ class _AddProductPageState extends State<AddProductPage> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    descriptionController.dispose();
-    priceController.dispose();
-    stockController.dispose();
-    newCategoryController.dispose();
-    super.dispose();
   }
 
   @override
@@ -422,7 +423,7 @@ class _AddProductPageState extends State<AddProductPage> {
         iconTheme: const IconThemeData(color: Colors.white),
 
         title: Text(
-          'Add Product${FirebaseAuth.instance.currentUser?.displayName != null ? ' (${FirebaseAuth.instance.currentUser!.displayName})' : ''}',
+          'Add Product${AuthService().currentUser?.displayName != null ? ' (${AuthService().currentUser!.displayName})' : ''}',
           style: GoogleFonts.lexend(
             color: Colors.white,
             fontWeight: FontWeight.bold,

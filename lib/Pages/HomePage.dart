@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:main_amato/Pages/LoginPage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/admin/admin_main_page.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -21,7 +20,7 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _checkAutoLogin() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user != null && mounted) {
       // Check if admin
       final adminDoc = await FirebaseFirestore.instance
@@ -105,7 +104,9 @@ class _HomepageState extends State<Homepage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyWidget()),
+                  MaterialPageRoute(
+                    builder: (context) => const MenuPageScreen(),
+                  ),
                 );
               },
               child: Container(

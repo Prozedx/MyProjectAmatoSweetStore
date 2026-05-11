@@ -2,8 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/Pages/SettingPage.dart';
 
-class CategoriesPage extends StatelessWidget {
+class CategoriesPage extends StatefulWidget {
   const CategoriesPage({super.key});
+
+  @override
+  State<CategoriesPage> createState() => _CategoriesPageState();
+}
+
+class _CategoriesPageState extends State<CategoriesPage> {
+  late TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +71,16 @@ class CategoriesPage extends StatelessWidget {
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Row(
-                    children: const [
-                      Icon(Icons.search, color: Colors.grey),
-                      SizedBox(width: 8),
+                    children: [
+                      const Icon(Icons.search, color: Colors.grey),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          decoration: InputDecoration(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {});
+                          },
+                          decoration: const InputDecoration(
                             border: InputBorder.none,
                             hintText: 'SEARCH',
                             hintStyle: TextStyle(

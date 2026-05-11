@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:main_amato/Pages/ProductDetailsPage.dart';
@@ -8,6 +7,7 @@ import 'package:main_amato/Pages/CategoriesPage.dart';
 import 'package:main_amato/Pages/SettingPage.dart';
 import 'package:main_amato/Pages/CartPage.dart';
 import 'package:main_amato/Pages/AllProductsPage.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class MenuPageScreen extends StatefulWidget {
   const MenuPageScreen({super.key, this.initialIndex = 0});
@@ -691,7 +691,7 @@ class FavoriteButton extends StatelessWidget {
   });
 
   Future<void> toggleFavorite(bool isFavorite) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) return;
 
@@ -718,7 +718,7 @@ class FavoriteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) {
       return const Icon(Icons.favorite_border, color: Colors.black, size: 25);

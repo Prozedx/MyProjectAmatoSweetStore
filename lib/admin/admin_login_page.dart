@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../Pages/LoginPage.dart';
+import '../services/auth_service.dart';
 import 'admin_main_page.dart';
 
 class AdminLoginPage extends StatefulWidget {
@@ -30,7 +31,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   }
 
   Future<void> _checkAutoLogin() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user != null && mounted) {
       final adminDoc = await FirebaseFirestore.instance
           .collection('admins')
@@ -61,7 +62,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     try {
       setState(() => isLoading = true);
 
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await AuthService().login(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
@@ -74,7 +75,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           .get();
 
       if (!adminDoc.exists) {
-        await FirebaseAuth.instance.signOut();
+        await AuthService().logout();
 
         showMessage('This account is not an admin.');
 

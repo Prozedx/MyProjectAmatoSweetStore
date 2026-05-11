@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/cloudinary_service.dart';
+import '../services/auth_service.dart';
 import 'LoginPage.dart';
 import 'MyOrdersPage.dart';
 
@@ -34,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool isLoading = false;
   bool isSaving = false;
 
-  final user = FirebaseAuth.instance.currentUser;
+  User? get user => AuthService().currentUser;
 
   @override
   void initState() {
@@ -132,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> logout() async {
-    await FirebaseAuth.instance.signOut();
+    await AuthService().logout();
 
     if (!mounted) return;
 

@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:main_amato/services/product_service.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -108,6 +108,40 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         );
       }),
     );
+  }
+
+  Future<void> _refreshOrders() async {
+    setState(() {});
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  Future<void> _showCancelConfirmation({
+    required BuildContext context,
+    required String orderId,
+    required Map<String, dynamic> data,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: const Text('Are you sure you want to cancel this order?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (!context.mounted) return;
+      await cancelOrder(context: context, orderId: orderId, data: data);
+    }
   }
 
   Future<void> cancelOrder({
@@ -273,8 +307,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () =>
-                    cancelOrder(context: context, orderId: doc.id, data: data),
+                onPressed: () => _showCancelConfirmation(
+                  context: context,
+                  orderId: doc.id,
+                  data: data,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -292,7 +329,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -324,73 +361,96 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   style: TextStyle(color: Colors.white),
                 ),
               )
-            : StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('orders')
-                    .where('userId', isEqualTo: user.uid)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error loading orders',
-                        style: GoogleFonts.lexend(color: Colors.white),
-                      ),
-                    );
-                  }
+            : RefreshIndicator(
+                onRefresh: _refreshOrders,
+                color: const Color(0xFFF267AF),
+                backgroundColor: Colors.white,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('userId', isEqualTo: user.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading orders: ${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _refreshOrders,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    );
-                  }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    }
 
-                  final orders = snapshot.data?.docs ?? [];
-                  final filteredOrders = orders.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final status = data['status']?.toString() ?? 'pending';
-                    return status == selectedStatus;
-                  }).toList();
+                    final orders = snapshot.data?.docs ?? [];
+                    final filteredOrders = orders.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final status = data['status']?.toString() ?? 'pending';
+                      return status == selectedStatus;
+                    }).toList();
 
-                  if (filteredOrders.isEmpty) {
+                    if (filteredOrders.isEmpty) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          statusFilterButtons(),
+                          const SizedBox(height: 18),
+                          Center(
+                            child: Text(
+                              'No ${selectedStatus == 'intransit'
+                                  ? 'In Transit'
+                                  : selectedStatus == 'delivered'
+                                  ? 'Delivered'
+                                  : 'Pending'} orders yet',
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         statusFilterButtons(),
                         const SizedBox(height: 18),
-                        Center(
-                          child: Text(
-                            'No ${selectedStatus == 'intransit'
-                                ? 'In Transit'
-                                : selectedStatus == 'delivered'
-                                ? 'Delivered'
-                                : 'Pending'} orders yet',
-                            style: GoogleFonts.lexend(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: filteredOrders.length,
+                            itemBuilder: (context, index) {
+                              return orderCard(context, filteredOrders[index]);
+                            },
                           ),
                         ),
                       ],
                     );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      statusFilterButtons(),
-                      const SizedBox(height: 18),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: filteredOrders.length,
-                          itemBuilder: (context, index) {
-                            return orderCard(context, filteredOrders[index]);
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                  },
+                ),
               ),
       ),
     );

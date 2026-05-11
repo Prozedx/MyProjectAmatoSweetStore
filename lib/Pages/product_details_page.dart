@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/services/product_service.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final String productId;
@@ -46,7 +46,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<void> addToCart() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(
@@ -107,7 +107,30 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<void> buyNow() async {
-    final user = FirebaseAuth.instance.currentUser;
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Purchase'),
+        content: Text(
+          'Buy $quantity ${widget.title}(s) for ₱${total.toStringAsFixed(2)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final user = AuthService().currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(
@@ -215,7 +238,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<void> toggleFavorite(bool isFavorite) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(
@@ -246,7 +269,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<bool> canReviewProduct() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) return false;
 
@@ -286,7 +309,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     if (user == null) return;
     if (!mounted) return;
@@ -674,13 +697,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseAuth.instance.currentUser == null
+                            stream: AuthService().currentUser == null
                                 ? null
                                 : FirebaseFirestore.instance
                                       .collection('favorites')
-                                      .doc(
-                                        FirebaseAuth.instance.currentUser!.uid,
-                                      )
+                                      .doc(AuthService().currentUser!.uid)
                                       .collection('items')
                                       .doc(widget.productId)
                                       .snapshots(),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/Pages/MyOrdersPage.dart';
 import 'package:main_amato/services/product_service.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -16,7 +17,7 @@ class _CartPageState extends State<CartPage> {
   final Set<String> selectedItems = {};
 
   Future<void> removeItem(String itemId) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user == null) return;
 
     await FirebaseFirestore.instance
@@ -28,7 +29,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> updateQuantity(String itemId, int newQuantity) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user == null) return;
 
     if (newQuantity <= 0) {
@@ -60,8 +61,17 @@ class _CartPageState extends State<CartPage> {
       );
       return;
     }
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user == null) return;
+
+    // Show loading dialog
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
 
     try {
       final firestore = FirebaseFirestore.instance;
@@ -197,6 +207,9 @@ class _CartPageState extends State<CartPage> {
         selectedItems.clear();
       });
 
+      // Close loading dialog
+      Navigator.of(context).pop();
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Checkout successful')));
@@ -208,10 +221,22 @@ class _CartPageState extends State<CartPage> {
     } catch (e) {
       if (!context.mounted) return;
 
+      // Close loading dialog
+      Navigator.of(context).pop();
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Checkout failed: $e')));
     }
+  }
+
+  Future<void> _refreshCart() async {
+    // This triggers a refresh of the StreamBuilder by rebuilding
+    // The StreamBuilder will re-listen to the stream
+    setState(() {});
+
+    // Add a small delay for UX feedback
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   Widget _buildCartBody(User? user) {
@@ -224,204 +249,261 @@ class _CartPageState extends State<CartPage> {
       );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('carts')
-          .doc(user.uid)
-          .collection('items')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        }
-
-        final items = snapshot.data?.docs ?? [];
-
-        if (items.isEmpty) {
-          return const Center(
-            child: Text(
-              'Your cart is empty',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          );
-        }
-
-        double total = 0;
-
-        for (final doc in items) {
-          if (selectedItems.contains(doc.id)) {
-            final data = doc.data() as Map<String, dynamic>;
-            final price = double.tryParse(data['price'].toString()) ?? 0;
-            final qty = data['quantity'] ?? 1;
-            total += price * qty;
+    return RefreshIndicator(
+      onRefresh: _refreshCart,
+      color: const Color(0xFFF267AF),
+      backgroundColor: Colors.white,
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('carts')
+            .doc(user.uid)
+            .collection('items')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
           }
-        }
 
-        return Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final doc = items[index];
-                  final data = doc.data() as Map<String, dynamic>;
-                  final quantity = data['quantity'] ?? 1;
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading cart: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _refreshCart,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: selectedItems.contains(doc.id),
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                selectedItems.add(doc.id);
-                              } else {
-                                selectedItems.remove(doc.id);
-                              }
-                            });
-                          },
-                          activeColor: const Color(0xFFF267AF),
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.network(
-                            data['imageUrl'] ?? '',
-                            width: 70,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 70,
-                                height: 70,
-                                color: const Color(0xFFFFC1C1),
-                                child: const Icon(Icons.image),
+          final items = snapshot.data?.docs ?? [];
+
+          if (items.isEmpty) {
+            return const Center(
+              child: Text(
+                'Your cart is empty',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            );
+          }
+
+          double total = 0;
+
+          for (final doc in items) {
+            if (selectedItems.contains(doc.id)) {
+              final data = doc.data() as Map<String, dynamic>;
+              final price = double.tryParse(data['price'].toString()) ?? 0;
+              final qty = data['quantity'] ?? 1;
+              total += price * qty;
+            }
+          }
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final doc = items[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final quantity = data['quantity'] ?? 1;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: selectedItems.contains(doc.id),
+                            onChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  selectedItems.add(doc.id);
+                                } else {
+                                  selectedItems.remove(doc.id);
+                                }
+                              });
+                            },
+                            activeColor: const Color(0xFFF267AF),
+                          ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.network(
+                              data['imageUrl'] ?? '',
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 70,
+                                  height: 70,
+                                  color: const Color(0xFFFFC1C1),
+                                  child: const Icon(Icons.image),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  data['name'] ?? '',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text('₱${data['price']}'),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      onPressed: () =>
+                                          updateQuantity(doc.id, quantity - 1),
+                                      icon: const Icon(Icons.remove, size: 16),
+                                    ),
+                                    Text('Qty: $quantity'),
+                                    IconButton(
+                                      onPressed: () =>
+                                          updateQuantity(doc.id, quantity + 1),
+                                      icon: const Icon(Icons.add, size: 16),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Remove Item'),
+                                  content: const Text(
+                                    'Are you sure you want to remove this item from the cart?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        removeItem(doc.id);
+                                      },
+                                      child: const Text(
+                                        'Remove',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               );
                             },
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Color(0xFFF267AF),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 80,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(26),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Total',
+                          style: GoogleFonts.lexend(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                data['name'] ?? '',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Text('₱${data['price']}'),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    onPressed: () =>
-                                        updateQuantity(doc.id, quantity - 1),
-                                    icon: const Icon(Icons.remove, size: 16),
-                                  ),
-                                  Text('Qty: $quantity'),
-                                  IconButton(
-                                    onPressed: () =>
-                                        updateQuantity(doc.id, quantity + 1),
-                                    icon: const Icon(Icons.add, size: 16),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => removeItem(doc.id),
-                          icon: const Icon(
-                            Icons.delete,
-                            color: Color(0xFFF267AF),
+                        const Spacer(),
+                        Text(
+                          '₱${total.toStringAsFixed(2)}',
+                          style: GoogleFonts.lexend(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFF267AF),
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 80),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(26),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Total',
-                        style: GoogleFonts.lexend(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: selectedItems.isNotEmpty
+                            ? () => checkout(context, items)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedItems.isNotEmpty
+                              ? const Color(0xFFF267AF)
+                              : Colors.grey,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
+                        child: const Text('ORDER/BUY'),
                       ),
-                      const Spacer(),
-                      Text(
-                        '₱${total.toStringAsFixed(2)}',
-                        style: GoogleFonts.lexend(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFF267AF),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: selectedItems.isNotEmpty
-                          ? () => checkout(context, items)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: selectedItems.isNotEmpty
-                            ? const Color(0xFFF267AF)
-                            : Colors.grey,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text('ORDER/BUY'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

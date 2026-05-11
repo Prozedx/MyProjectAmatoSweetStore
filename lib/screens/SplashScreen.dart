@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/Pages/HomePage.dart';
 import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/admin/admin_main_page.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _redirectAfterSplash() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser;
     if (user != null) {
       final adminDoc = await FirebaseFirestore.instance
           .collection('admins')

@@ -7,6 +7,7 @@ import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/admin/admin_login_page.dart';
 import 'package:main_amato/Pages/ForgotPasswordPage.dart';
 import 'package:main_amato/Pages/RegisterPage.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class MyWidget extends StatefulWidget {
   const MyWidget({super.key});
@@ -38,7 +39,7 @@ class _MyWidgetState extends State<MyWidget> {
     try {
       setState(() => isLoading = true);
 
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await AuthService().login(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -51,7 +52,7 @@ class _MyWidgetState extends State<MyWidget> {
           .get();
 
       if (adminDoc.exists) {
-        await FirebaseAuth.instance.signOut();
+        await AuthService().logout();
 
         if (!mounted) return;
 

@@ -1,14 +1,14 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/auth_service.dart';
 import 'admin_login_page.dart';
 
 class AdminSettingsPage extends StatelessWidget {
   const AdminSettingsPage({super.key});
 
   Future<void> logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
+    await AuthService().logout();
 
     if (!context.mounted) return;
 

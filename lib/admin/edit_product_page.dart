@@ -1,10 +1,11 @@
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 import '../services/category_service.dart';
 import '../services/cloudinary_service.dart';
@@ -78,6 +79,16 @@ class _EditProductPageState extends State<EditProductPage> {
     );
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    priceController.dispose();
+    stockController.dispose();
+    newCategoryController.dispose();
+    super.dispose();
+  }
+
   Future<void> pickImage() async {
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
@@ -103,7 +114,7 @@ class _EditProductPageState extends State<EditProductPage> {
       return;
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = AuthService().currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -428,7 +439,7 @@ class _EditProductPageState extends State<EditProductPage> {
                 ),
               ActionChip(
                 label: Text(
-                  'Add more${FirebaseAuth.instance.currentUser?.displayName != null ? ' (${FirebaseAuth.instance.currentUser!.displayName})' : ''}',
+                  'Add more${AuthService().currentUser?.displayName != null ? ' (${AuthService().currentUser!.displayName})' : ''}',
                   style: GoogleFonts.lexend(fontSize: 12),
                 ),
                 backgroundColor: Colors.white,
@@ -495,16 +506,6 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   @override
-  void dispose() {
-    nameController.dispose();
-    descriptionController.dispose();
-    priceController.dispose();
-    stockController.dispose();
-    newCategoryController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -522,7 +523,7 @@ class _EditProductPageState extends State<EditProductPage> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          'Edit Product${FirebaseAuth.instance.currentUser?.displayName != null ? ' (${FirebaseAuth.instance.currentUser!.displayName})' : ''}',
+          'Edit Product${AuthService().currentUser?.displayName != null ? ' (${AuthService().currentUser!.displayName})' : ''}',
           style: GoogleFonts.lexend(
             color: Colors.white,
             fontWeight: FontWeight.bold,

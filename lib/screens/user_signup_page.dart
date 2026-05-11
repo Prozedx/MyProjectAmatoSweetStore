@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:main_amato/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -39,11 +40,10 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       setState(() => isLoading = true);
 
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
+      final credential = await AuthService().register(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
       final uid = credential.user!.uid;
 
@@ -59,7 +59,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await FirebaseAuth.instance.signOut();
+      await AuthService().logout();
 
       if (!mounted) return;
 

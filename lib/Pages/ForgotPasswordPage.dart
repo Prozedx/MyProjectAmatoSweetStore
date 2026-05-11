@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:main_amato/services/auth_service.dart';
+
 class ForgotPasswordPage extends StatefulWidget {
   final String initialEmail;
 
@@ -60,7 +62,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
 
       debugPrint('Sending password reset email to: $email');
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      await AuthService().sendPasswordResetEmail(email);
 
       if (!mounted) return;
 
