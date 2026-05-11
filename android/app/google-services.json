@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "710059881140",
+    "project_id": "amato-sweet-store",
+    "storage_bucket": "amato-sweet-store.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:710059881140:android:dad44ca1aabd02c68f5de1",
+        "android_client_info": {
+          "package_name": "com.example.main_amato"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHZ-ZvHP9wDNsW4eDMzY28GbT1y_K43N0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

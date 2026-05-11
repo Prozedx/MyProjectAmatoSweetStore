@@ -1,0 +1,19 @@
+// Firestore security rules for categories.
+// WARNING: Review and merge with your existing rules before deploying.
+// Deploying this file will replace your project's rules.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Category documents: allow read for everyone, writes for authenticated users,
+    // and restrict deletes to users with the `admin` custom claim.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // NOTE: Do not include a permissive catch-all here unless you intend to
+    // allow other collections. Merge the `match /categories/{categoryId}` block
+    // into your existing rules file to avoid accidentally locking other data.
+  }
+}
