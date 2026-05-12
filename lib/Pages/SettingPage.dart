@@ -9,7 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
 import 'LoginPage.dart';
-import 'MyOrdersPage.dart';
+import 'my_orders_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

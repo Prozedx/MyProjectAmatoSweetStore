@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/services/auth_service.dart';
 
-import 'ProductDetailsPage.dart';
+import 'product_details_page.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});

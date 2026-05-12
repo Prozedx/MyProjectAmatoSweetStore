@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/admin/admin_login_page.dart';
 import 'package:main_amato/Pages/ForgotPasswordPage.dart';
-import 'package:main_amato/Pages/RegisterPage.dart';
+import 'package:main_amato/Pages/register_page.dart';
 import 'package:main_amato/services/auth_service.dart';
 
 class MyWidget extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:main_amato/Pages/MyOrdersPage.dart';
+import 'package:main_amato/Pages/my_orders_page.dart';
 import 'package:main_amato/services/product_service.dart';
 import 'package:main_amato/services/auth_service.dart';
 

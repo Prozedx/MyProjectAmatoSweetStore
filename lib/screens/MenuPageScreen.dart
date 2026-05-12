@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import 'package:main_amato/Pages/ProductDetailsPage.dart';
+import 'package:main_amato/Pages/product_details_page.dart';
 import 'package:main_amato/Pages/FavoritesPage.dart';
 import 'package:main_amato/Pages/CategoriesPage.dart';
 import 'package:main_amato/Pages/SettingPage.dart';
