@@ -1,10 +1,52 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'product_details_page.dart';
 
 class AllProductsPage extends StatelessWidget {
   const AllProductsPage({super.key});
+
+  Widget _buildProductRating(String productId) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final productData =
+            snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final avgRating = (productData['averageRating'] ?? 0.0) as num;
+        final reviewCount = (productData['reviewCount'] ?? 0) as int;
+
+        if (reviewCount == 0) {
+          return const SizedBox.shrink();
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...List.generate(
+              5,
+              (index) => Icon(
+                index < avgRating.round() ? Icons.star : Icons.star_border,
+                color: Colors.amber,
+                size: 14,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '($reviewCount)',
+              style: GoogleFonts.lexend(
+                fontSize: 10,
+                color: const Color(0xFFF267AF),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +56,10 @@ class AllProductsPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFFF267AF)),
-        title: const Text(
+        title: Text(
           'All Products',
-          style: TextStyle(
-            color: Color(0xFFF267AF),
+          style: GoogleFonts.lexend(
+            color: const Color(0xFFF267AF),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -46,10 +88,10 @@ class AllProductsPage extends StatelessWidget {
             final products = snapshot.data?.docs ?? [];
 
             if (products.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
                   'No products available',
-                  style: TextStyle(color: Colors.white),
+                  style: GoogleFonts.lexend(color: Colors.white),
                 ),
               );
             }
@@ -126,12 +168,13 @@ class AllProductsPage extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.all(8),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: GoogleFonts.lexend(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
@@ -140,7 +183,7 @@ class AllProductsPage extends StatelessWidget {
                                   stock <= 0
                                       ? 'Out of stock'
                                       : '₱$price | Stock: $stock',
-                                  style: TextStyle(
+                                  style: GoogleFonts.lexend(
                                     color: stock <= 0
                                         ? Colors.red
                                         : const Color(0xFFF267AF),
@@ -148,6 +191,8 @@ class AllProductsPage extends StatelessWidget {
                                     fontSize: 12,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
+                                _buildProductRating(doc.id),
                               ],
                             ),
                           ),

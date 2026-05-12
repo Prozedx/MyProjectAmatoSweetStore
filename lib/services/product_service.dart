@@ -49,6 +49,8 @@ class ProductService {
       'price': price,
       'stock': stock,
       'imageUrl': imageUrl,
+      'averageRating': 0.0,
+      'reviewCount': 0,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });

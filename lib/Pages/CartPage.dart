@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/Pages/my_orders_page.dart';
+import 'package:main_amato/Pages/LoginPage.dart';
+import 'package:main_amato/Pages/register_page.dart';
 import 'package:main_amato/services/product_service.dart';
 import 'package:main_amato/services/auth_service.dart';
 
@@ -241,10 +243,59 @@ class _CartPageState extends State<CartPage> {
 
   Widget _buildCartBody(User? user) {
     if (user == null) {
-      return const Center(
-        child: Text(
-          'Please login first',
-          style: TextStyle(color: Colors.white),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Don't have account?",
+              style: GoogleFonts.lexend(color: Colors.white, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyWidget()),
+                    );
+                  },
+                  child: Text(
+                    'Sign in here',
+                    style: GoogleFonts.lexend(
+                      color: Colors.white,
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  ' or ',
+                  style: GoogleFonts.lexend(color: Colors.white, fontSize: 13),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterPage()),
+                    );
+                  },
+                  child: Text(
+                    'create new account',
+                    style: GoogleFonts.lexend(
+                      color: Colors.white,
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       );
     }
@@ -434,7 +485,7 @@ class _CartPageState extends State<CartPage> {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
-                  vertical: 80,
+                  vertical: 35,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -527,7 +578,7 @@ class _CartPageState extends State<CartPage> {
             colors: [Color(0xFFFFE5B4), Color(0xFFF267AF)],
           ),
         ),
-        child: _buildCartBody(user),
+        child: SafeArea(child: _buildCartBody(user)),
       ),
     );
   }

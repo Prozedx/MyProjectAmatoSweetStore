@@ -23,6 +23,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
   bool isLoading = false;
   bool isPasswordVisible = false;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -54,10 +56,19 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  void _clearErrors() {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+  }
+
   Future<void> loginAdmin() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
+
+    _clearErrors();
 
     try {
       setState(() => isLoading = true);
@@ -89,19 +100,62 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         MaterialPageRoute(builder: (_) => const AdminMainPage()),
       );
     } on FirebaseAuthException catch (e) {
-      String message = e.message ?? 'Admin login failed';
+      String message = 'Admin login failed. Please try again.';
 
-      if (e.code == 'user-not-found') {
-        message = 'No admin account found.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password.';
-      } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address.';
+      switch (e.code) {
+        case 'user-not-found':
+          message =
+              'No admin account found with this email. Please check your email.';
+          setState(() {
+            _emailError = 'Email not found';
+            isLoading = false;
+            formKey.currentState?.validate();
+          });
+          break;
+        case 'wrong-password':
+          message = 'Incorrect password. Please try again.';
+          setState(() {
+            _passwordError = 'Password is incorrect';
+            isLoading = false;
+            formKey.currentState?.validate();
+          });
+          break;
+        case 'invalid-email':
+          message = 'Invalid email format. Please enter a valid email address.';
+          setState(() {
+            _emailError = 'Invalid email format';
+            isLoading = false;
+            formKey.currentState?.validate();
+          });
+          break;
+        case 'invalid-credential':
+          message =
+              'Invalid email or password. Please check both and try again.';
+          setState(() {
+            _emailError = 'Invalid credentials';
+            _passwordError = 'Invalid credentials';
+            isLoading = false;
+            formKey.currentState?.validate();
+          });
+          break;
+        case 'too-many-requests':
+          message = 'Too many login attempts. Please try again later.';
+          setState(() => isLoading = false);
+          break;
+        case 'network-request-failed':
+          message = 'Network error. Please check your internet connection.';
+          setState(() => isLoading = false);
+          break;
+        default:
+          message = e.message ?? 'Admin login failed. Please try again.';
+          setState(() => isLoading = false);
       }
 
-      showMessage(message);
-    } finally {
       if (mounted) {
+        showMessage(message);
+      }
+    } finally {
+      if (mounted && isLoading) {
         setState(() => isLoading = false);
       }
     }
@@ -330,11 +384,16 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                           TextFormField(
                             controller: emailController,
                             keyboardType: TextInputType.emailAddress,
+                            onChanged: (_) => _clearErrors(),
                             decoration: inputDecoration(
                               hint: 'ADMIN EMAIL',
                               icon: Icons.email,
                             ),
                             validator: (value) {
+                              if (_emailError != null) {
+                                return _emailError;
+                              }
+
                               if (value == null || value.trim().isEmpty) {
                                 return 'Email is required';
                               }
@@ -352,6 +411,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                           TextFormField(
                             controller: passwordController,
                             obscureText: !isPasswordVisible,
+                            onChanged: (_) => _clearErrors(),
                             decoration: inputDecoration(
                               hint: 'PASSWORD',
                               icon: Icons.lock,
@@ -364,6 +424,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                               },
                             ),
                             validator: (value) {
+                              if (_passwordError != null) {
+                                return _passwordError;
+                              }
+
                               if (value == null || value.isEmpty) {
                                 return 'Password is required';
                               }

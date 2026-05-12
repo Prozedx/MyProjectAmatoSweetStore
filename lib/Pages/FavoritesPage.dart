@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:main_amato/services/auth_service.dart';
+import 'package:main_amato/Pages/LoginPage.dart';
+import 'package:main_amato/Pages/register_page.dart';
 
 import 'product_details_page.dart';
 
@@ -120,15 +122,74 @@ class _FavoritesPageState extends State<FavoritesPage> {
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
-            colors: [Color(0xFFFFD0B6), Color(0xFFFF79AE)],
+            colors: [Color(0xFFFFE5B4), Color(0xFFF267AF)],
           ),
         ),
         child: SafeArea(
           child: user == null
-              ? const Center(
-                  child: Text(
-                    'Please login first',
-                    style: TextStyle(color: Colors.white),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have account?",
+                        style: GoogleFonts.lexend(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const MyWidget(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Sign in here',
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            ' or ',
+                            style: GoogleFonts.lexend(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterPage(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'create new account',
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 )
               : RefreshIndicator(

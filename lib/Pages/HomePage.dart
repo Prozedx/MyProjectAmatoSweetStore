@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:main_amato/screens/MenuPageScreen.dart';
 import 'package:main_amato/admin/admin_main_page.dart';
 import 'package:main_amato/services/auth_service.dart';
+import 'package:main_amato/Pages/LoginPage.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -135,6 +136,37 @@ class _HomepageState extends State<Homepage> {
                     color: Colors.white,
                     letterSpacing: 1.5,
                   ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyWidget()),
+                );
+              },
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "Already have an account? ",
+                      style: GoogleFonts.lexend(
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
+                    ),
+                    TextSpan(
+                      text: "Sign in here",
+                      style: GoogleFonts.lexend(
+                        fontSize: 13,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

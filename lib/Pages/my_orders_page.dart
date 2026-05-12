@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:main_amato/services/product_service.dart';
 import 'package:main_amato/services/auth_service.dart';
+import 'package:main_amato/Pages/LoginPage.dart';
+import 'package:main_amato/Pages/register_page.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -344,9 +346,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         ),
       ),
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(18),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
@@ -354,104 +353,184 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             colors: [Color(0xFFFFE5B4), Color(0xFFF267AF)],
           ),
         ),
-        child: user == null
-            ? const Center(
-                child: Text(
-                  'Please login first',
-                  style: TextStyle(color: Colors.white),
-                ),
-              )
-            : RefreshIndicator(
-                onRefresh: _refreshOrders,
-                color: const Color(0xFFF267AF),
-                backgroundColor: Colors.white,
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('orders')
-                      .where('userId', isEqualTo: user.uid)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
+        child: SafeArea(
+          child: user == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have account?",
+                        style: GoogleFonts.lexend(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const MyWidget(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Sign in here',
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            ' or ',
+                            style: GoogleFonts.lexend(
                               color: Colors.white,
-                              size: 48,
+                              fontSize: 13,
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Error loading orders: ${snapshot.error}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.white),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterPage(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'create new account',
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _refreshOrders,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _refreshOrders,
+                  color: const Color(0xFFF267AF),
+                  backgroundColor: Colors.white,
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('orders')
+                        .where('userId', isEqualTo: user.uid)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error loading orders: ${snapshot.error}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _refreshOrders,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      }
+
+                      final orders = snapshot.data?.docs ?? [];
+
+                      // Sort orders by createdAt (newest first)
+                      final sortedOrders = List<QueryDocumentSnapshot>.from(
+                        orders,
+                      );
+                      sortedOrders.sort((a, b) {
+                        final aDate =
+                            (a.data() as Map<String, dynamic>)['createdAt']
+                                as Timestamp?;
+                        final bDate =
+                            (b.data() as Map<String, dynamic>)['createdAt']
+                                as Timestamp?;
+                        return (bDate?.compareTo(aDate ?? Timestamp.now()) ??
+                            0);
+                      });
+
+                      final filteredOrders = sortedOrders.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final status = data['status']?.toString() ?? 'pending';
+                        return status == selectedStatus;
+                      }).toList();
+
+                      if (filteredOrders.isEmpty) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            statusFilterButtons(),
+                            const SizedBox(height: 18),
+                            Center(
+                              child: Text(
+                                'No ${selectedStatus == 'intransit'
+                                    ? 'In Transit'
+                                    : selectedStatus == 'delivered'
+                                    ? 'Delivered'
+                                    : 'Pending'} orders yet',
+                                style: GoogleFonts.lexend(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ),
                           ],
-                        ),
-                      );
-                    }
+                        );
+                      }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      );
-                    }
-
-                    final orders = snapshot.data?.docs ?? [];
-                    final filteredOrders = orders.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final status = data['status']?.toString() ?? 'pending';
-                      return status == selectedStatus;
-                    }).toList();
-
-                    if (filteredOrders.isEmpty) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           statusFilterButtons(),
                           const SizedBox(height: 18),
-                          Center(
-                            child: Text(
-                              'No ${selectedStatus == 'intransit'
-                                  ? 'In Transit'
-                                  : selectedStatus == 'delivered'
-                                  ? 'Delivered'
-                                  : 'Pending'} orders yet',
-                              style: GoogleFonts.lexend(
-                                color: Colors.white,
-                                fontSize: 18,
-                              ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filteredOrders.length,
+                              itemBuilder: (context, index) {
+                                return orderCard(
+                                  context,
+                                  filteredOrders[index],
+                                );
+                              },
                             ),
                           ),
                         ],
                       );
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        statusFilterButtons(),
-                        const SizedBox(height: 18),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: filteredOrders.length,
-                            itemBuilder: (context, index) {
-                              return orderCard(context, filteredOrders[index]);
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

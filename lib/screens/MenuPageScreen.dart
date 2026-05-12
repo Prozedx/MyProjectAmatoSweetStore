@@ -7,6 +7,7 @@ import 'package:main_amato/Pages/CategoriesPage.dart';
 import 'package:main_amato/Pages/SettingPage.dart';
 import 'package:main_amato/Pages/CartPage.dart';
 import 'package:main_amato/Pages/AllProductsPage.dart';
+import 'package:main_amato/Pages/my_orders_page.dart';
 import 'package:main_amato/services/auth_service.dart';
 
 class MenuPageScreen extends StatefulWidget {
@@ -48,10 +49,9 @@ class _MenuPageScreenState extends State<MenuPageScreen> {
         onSearchTap: _openCategories,
         onMenuTap: _openCategories,
       ),
-
       const FavoritesPage(),
-
       const CartPage(),
+      const MyOrdersPage(),
     ];
   }
 
@@ -125,7 +125,7 @@ class _MenuPageScreenState extends State<MenuPageScreen> {
     return Scaffold(
       extendBody: true,
       backgroundColor: const Color(0xFFFF79AE),
-      body: _pages[_currentIndex],
+      body: _currentIndex < _pages.length ? _pages[_currentIndex] : _pages[0],
       bottomNavigationBar: Container(
         height: 66,
         margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
@@ -158,7 +158,12 @@ class _MenuPageScreenState extends State<MenuPageScreen> {
               active: _currentIndex == 2,
               onTap: () => setState(() => _currentIndex = 2),
             ),
-            _navIcon(icon: Icons.menu, active: false, onTap: _openSettings),
+            _navIcon(
+              icon: Icons.receipt_long,
+              active: _currentIndex == 3,
+              onTap: () => setState(() => _currentIndex = 3),
+            ),
+            _navIcon(icon: Icons.settings, active: false, onTap: _openSettings),
           ],
         ),
       ),

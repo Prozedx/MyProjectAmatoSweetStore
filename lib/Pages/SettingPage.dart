@@ -9,7 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
 import 'LoginPage.dart';
-import 'my_orders_page.dart';
+import 'register_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -141,6 +141,20 @@ class _SettingsPageState extends State<SettingsPage> {
       context,
       MaterialPageRoute(builder: (_) => const MyWidget()),
       (route) => false,
+    );
+  }
+
+  void navigateToLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyWidget()),
+    );
+  }
+
+  void navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterPage()),
     );
   }
 
@@ -318,69 +332,126 @@ class _SettingsPageState extends State<SettingsPage> {
 
                       const SizedBox(height: 18),
 
-                      avatar(),
-
-                      const SizedBox(height: 10),
-
-                      Text(
-                        'Tap profile picture to edit',
-                        style: GoogleFonts.lexend(
-                          color: Colors.white70,
-                          fontSize: 12,
+                      if (user != null) ...[
+                        avatar(),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Tap profile picture to edit',
+                          style: GoogleFonts.lexend(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 25),
+                        input(
+                          usernameController,
+                          'Username',
+                          icon: Icons.person,
+                        ),
+                        input(emailController, 'Email', icon: Icons.email),
+                        input(
+                          phoneController,
+                          'Phone Number',
+                          icon: Icons.phone,
+                        ),
+                        input(
+                          streetController,
+                          'House Number / Street',
+                          icon: Icons.home,
+                        ),
+                        input(
+                          barangayController,
+                          'Barangay',
+                          icon: Icons.location_on,
+                        ),
+                        input(
+                          municipalityController,
+                          'Municipality',
+                          icon: Icons.location_city,
+                        ),
+                        input(provinceController, 'Province', icon: Icons.map),
+                        const SizedBox(height: 12),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [
+                              BoxShadow(
+                                blurRadius: 16,
+                                color: Colors.black26,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topRight,
+                                    end: Alignment.bottomLeft,
+                                    colors: [
+                                      Color(0xFFFFE5B4),
+                                      Color(0xFFF267AF),
+                                    ],
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.shopping_bag_outlined,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Ready to Order?',
+                                style: GoogleFonts.lexend(
+                                  color: const Color(0xFFF267AF),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Create an account to start ordering your favorite sweets!',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.lexend(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
 
-                      const SizedBox(height: 25),
+                      if (user != null)
+                        mainButton(
+                          text: isSaving ? 'SAVING...' : 'SAVE PROFILE',
+                          icon: Icons.save,
+                          onTap: isSaving ? null : saveProfile,
+                        ),
 
-                      input(usernameController, 'Username', icon: Icons.person),
-                      input(emailController, 'Email', icon: Icons.email),
-                      input(phoneController, 'Phone Number', icon: Icons.phone),
-                      input(
-                        streetController,
-                        'House Number / Street',
-                        icon: Icons.home,
-                      ),
-                      input(
-                        barangayController,
-                        'Barangay',
-                        icon: Icons.location_on,
-                      ),
-                      input(
-                        municipalityController,
-                        'Municipality',
-                        icon: Icons.location_city,
-                      ),
-                      input(provinceController, 'Province', icon: Icons.map),
+                      if (user != null) const SizedBox(height: 12),
 
-                      const SizedBox(height: 12),
+                      if (user == null)
+                        mainButton(
+                          text: 'CREATE NEW ACCOUNT',
+                          icon: Icons.app_registration,
+                          onTap: navigateToRegister,
+                        ),
+
+                      if (user == null) const SizedBox(height: 12),
 
                       mainButton(
-                        text: isSaving ? 'SAVING...' : 'SAVE PROFILE',
-                        icon: Icons.save,
-                        onTap: isSaving ? null : saveProfile,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      mainButton(
-                        text: 'MY ORDERS',
-                        icon: Icons.receipt_long,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const MyOrdersPage(),
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      mainButton(
-                        text: 'LOGOUT',
-                        icon: Icons.logout,
-                        onTap: logout,
+                        text: user == null ? 'LOG IN' : 'LOGOUT',
+                        icon: user == null ? Icons.login : Icons.logout,
+                        onTap: user == null ? navigateToLogin : logout,
                       ),
 
                       const SizedBox(height: 40),

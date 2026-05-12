@@ -24,6 +24,8 @@ class _MyWidgetState extends State<MyWidget> {
 
   bool isLoading = false;
   bool isPasswordVisible = false;
+  String? _emailError;
+  String? _passwordError;
 
   bool isValidEmail(String email) {
     return RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$').hasMatch(email);
@@ -33,8 +35,17 @@ class _MyWidgetState extends State<MyWidget> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  void _clearErrors() {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+  }
+
   Future<void> _loginUser() async {
     if (!_formKey.currentState!.validate()) return;
+
+    _clearErrors();
 
     try {
       setState(() => isLoading = true);
@@ -62,26 +73,82 @@ class _MyWidgetState extends State<MyWidget> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const MenuPageScreen()),
+        (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      String message = e.message ?? 'Login failed';
+      String message = 'Login failed. Please try again.';
 
-      if (e.code == 'user-not-found') {
-        message = 'No account found.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password.';
-      } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address.';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Invalid email or password.';
+      switch (e.code) {
+        case 'user-not-found':
+          message =
+              'No account found with this email address. Please check your email or create a new account.';
+          setState(() {
+            _emailError = 'Email not found';
+            isLoading = false;
+            _formKey.currentState?.validate();
+          });
+          break;
+        case 'wrong-password':
+          message = 'Incorrect password. Please try again.';
+          setState(() {
+            _passwordError = 'Password is incorrect';
+            isLoading = false;
+            _formKey.currentState?.validate();
+          });
+          break;
+        case 'invalid-email':
+          message = 'Invalid email format. Please enter a valid email address.';
+          setState(() {
+            _emailError = 'Invalid email format';
+            isLoading = false;
+            _formKey.currentState?.validate();
+          });
+          break;
+        case 'invalid-credential':
+          message =
+              'Invalid email or password. Please check both and try again.';
+          setState(() {
+            _emailError = 'Invalid credentials';
+            _passwordError = 'Invalid credentials';
+            isLoading = false;
+            _formKey.currentState?.validate();
+          });
+          break;
+        case 'too-many-requests':
+          message = 'Too many login attempts. Please try again later.';
+          setState(() => isLoading = false);
+          break;
+        case 'account-exists-with-different-credential':
+          message =
+              'An account exists with this email but with different credentials.';
+          setState(() {
+            _emailError = 'Account exists with different method';
+            isLoading = false;
+            _formKey.currentState?.validate();
+          });
+          break;
+        case 'operation-not-allowed':
+          message =
+              'Email login is currently disabled. Please contact support.';
+          setState(() => isLoading = false);
+          break;
+        case 'network-request-failed':
+          message = 'Network error. Please check your internet connection.';
+          setState(() => isLoading = false);
+          break;
+        default:
+          message = e.message ?? 'Login failed. Please try again.';
+          setState(() => isLoading = false);
       }
 
-      _showMessage(message);
-    } finally {
       if (mounted) {
+        _showMessage(message);
+      }
+    } finally {
+      if (mounted && isLoading) {
         setState(() => isLoading = false);
       }
     }
@@ -108,6 +175,13 @@ class _MyWidgetState extends State<MyWidget> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RegisterPage()),
+    );
+  }
+
+  void _continueAsGuest() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MenuPageScreen()),
     );
   }
 
@@ -322,11 +396,16 @@ class _MyWidgetState extends State<MyWidget> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
+                          onChanged: (_) => _clearErrors(),
                           decoration: inputDecoration(
                             hint: 'EMAIL',
                             icon: Icons.email,
                           ),
                           validator: (value) {
+                            if (_emailError != null) {
+                              return _emailError;
+                            }
+
                             if (value == null || value.trim().isEmpty) {
                               return 'Email is required';
                             }
@@ -344,6 +423,7 @@ class _MyWidgetState extends State<MyWidget> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: !isPasswordVisible,
+                          onChanged: (_) => _clearErrors(),
                           decoration: inputDecoration(
                             hint: 'PASSWORD',
                             icon: Icons.lock,
@@ -356,6 +436,10 @@ class _MyWidgetState extends State<MyWidget> {
                             },
                           ),
                           validator: (value) {
+                            if (_passwordError != null) {
+                              return _passwordError;
+                            }
+
                             if (value == null || value.isEmpty) {
                               return 'Password is required';
                             }
@@ -398,17 +482,47 @@ class _MyWidgetState extends State<MyWidget> {
                 const SizedBox(height: 12),
 
                 _outlineButton(
-                  text: 'LOG IN AS ADMIN',
-                  icon: Icons.admin_panel_settings,
-                  onTap: _goToAdminLogin,
+                  text: 'CONTINUE AS GUEST',
+                  icon: Icons.explore,
+                  onTap: _continueAsGuest,
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 60),
 
-                _outlineButton(
-                  text: 'CREATE ACCOUNT',
-                  icon: Icons.person_add,
+                GestureDetector(
                   onTap: _goToRegister,
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: "Don't have an account? ",
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                        TextSpan(
+                          text: 'Create here',
+                          style: GoogleFonts.lexend(
+                            fontSize: 12,
+                            color: Colors.white,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                GestureDetector(
+                  onTap: _goToAdminLogin,
+                  child: Text(
+                    'Admin Login',
+                    style: GoogleFonts.lexend(
+                      fontSize: 11,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 25),

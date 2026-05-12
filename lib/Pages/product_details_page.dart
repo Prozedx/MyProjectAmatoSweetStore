@@ -380,6 +380,33 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           'createdAt': FieldValue.serverTimestamp(),
                         });
 
+                    // Update product with average rating
+                    final allReviews = await FirebaseFirestore.instance
+                        .collection('reviews')
+                        .where('productId', isEqualTo: widget.productId)
+                        .get();
+
+                    if (allReviews.docs.isNotEmpty) {
+                      final totalRating = allReviews.docs
+                          .map(
+                            (doc) =>
+                                (doc.data()
+                                    as Map<String, dynamic>)['rating'] ??
+                                0,
+                          )
+                          .reduce((a, b) => a + b);
+                      final avgRating = totalRating / allReviews.docs.length;
+
+                      await FirebaseFirestore.instance
+                          .collection('products')
+                          .doc(widget.productId)
+                          .update({
+                            'averageRating': avgRating,
+                            'reviewCount': allReviews.docs.length,
+                            'updatedAt': FieldValue.serverTimestamp(),
+                          });
+                    }
+
                     if (!context.mounted) return;
 
                     Navigator.pop(context);
@@ -398,11 +425,52 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 
+  String _getInitials(String username) {
+    final parts = username.trim().split(' ');
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Widget _buildUserAvatar(String username, {double size = 36}) {
+    final initials = _getInitials(username);
+    final colors = [
+      const Color(0xFFF267AF),
+      const Color(0xFFFF79AE),
+      const Color(0xFFFFB4C8),
+      const Color(0xFFFF8CAF),
+      const Color(0xFFFFA5D0),
+    ];
+    final colorIndex = username.hashCode % colors.length;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colors[colorIndex],
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: GoogleFonts.lexend(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: size * 0.4,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget reviewsSection() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('reviews')
           .where('productId', isEqualTo: widget.productId)
+          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         final reviews = snapshot.data?.docs ?? [];
@@ -419,6 +487,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           children: reviews.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final rating = data['rating'] ?? 0;
+            final username = data['username'] ?? 'Customer';
 
             return Container(
               width: double.infinity,
@@ -434,23 +503,39 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    data['username'] ?? 'Customer',
-                    style: GoogleFonts.lexend(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                   Row(
-                    children: List.generate(5, (index) {
-                      return Icon(
-                        index < rating ? Icons.star : Icons.star_border,
-                        color: Colors.amber,
-                        size: 18,
-                      );
-                    }),
+                    children: [
+                      _buildUserAvatar(username, size: 32),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              username,
+                              style: GoogleFonts.lexend(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(5, (index) {
+                                return Icon(
+                                  index < rating
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: Colors.amber,
+                                  size: 16,
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     data['comment'] ?? '',
                     style: GoogleFonts.lexend(
@@ -462,6 +547,51 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               ),
             );
           }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildAverageRating() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final productData =
+            snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final avgRating = (productData['averageRating'] ?? 0.0) as num;
+        final reviewCount = (productData['reviewCount'] ?? 0) as int;
+
+        if (reviewCount == 0) {
+          return Text(
+            'No ratings yet',
+            style: GoogleFonts.lexend(color: Colors.white70, fontSize: 12),
+          );
+        }
+
+        return Row(
+          children: [
+            Row(
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < avgRating.round() ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 18,
+                );
+              }),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${avgRating.toStringAsFixed(1)} ($reviewCount)',
+              style: GoogleFonts.lexend(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         );
       },
     );
@@ -606,6 +736,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 10),
+                        _buildAverageRating(),
                         const SizedBox(height: 8),
                         Text(
                           widget.description.isEmpty
